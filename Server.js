@@ -19,7 +19,8 @@ const client = new Client({ intents: [
 
 
 
-const commands = [{
+const commands = [
+    {
         name: 'intro',
         description: 'Gives it\'s introduction in a short and crisp way',
     },{
