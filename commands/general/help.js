@@ -11,7 +11,7 @@ export default {
       commands
         ?.map(
           (command) =>
-            `\`/${command.data.name}\` - ${command.data.description ?? "No description"}`,
+            `\`/${command.data.name}\` - ${command.data.description ?? "Sorry but we don't have a description for this command."}`,
         )
         .join("\n") || "No commands are currently registered.";
 
