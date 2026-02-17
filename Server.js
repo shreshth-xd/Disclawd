@@ -12,6 +12,14 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
+import logger from "./utils/logger.js";
+import {
+  handleCommandError,
+  registerProcessHandlers,
+} from "./utils/errorHandler.js";
+
+registerProcessHandlers();
+
 const app = express();
 const port = 3000;
 const BotToken = process.env.BOT_TOKEN;
@@ -57,8 +65,9 @@ for (const folder of commandFolders) {
       client.commands.set(command.data.name, command);
       commands.push(command.data.toJSON());
     } else {
-      console.warn(
+      logger.warn(
         `The command at ${filePath} is missing a required "data" or "execute" property.`,
+        { filePath },
       );
     }
   }
@@ -67,7 +76,7 @@ for (const folder of commandFolders) {
 const rest = new REST({ version: "10" }).setToken(BotToken);
 
 try {
-  console.log("Started refreshing application (/) commands.");
+  logger.info("Started refreshing application (/) commands.");
   await rest.put(
     Routes.applicationGuildCommands(
       process.env.ClientId,
@@ -75,9 +84,12 @@ try {
     ),
     { body: commands },
   );
-  console.log("Successfully reloaded application (/) commands.");
+  logger.info("Successfully reloaded application (/) commands.");
 } catch (error) {
-  console.error(error);
+  logger.error("Failed to register slash commands", {
+    error: error?.message ?? String(error),
+    stack: error?.stack,
+  });
 }
 
 client.on("messageCreate", (message) => {
@@ -93,26 +105,33 @@ client.on(Events.InteractionCreate, async (interaction) => {
   const command = interaction.client.commands.get(interaction.commandName);
 
   if (!command) {
-    console.error(`No command matching ${interaction.commandName} was found.`);
+    logger.error(`No command matching ${interaction.commandName} was found.`, {
+      commandName: interaction.commandName,
+      userId: interaction.user?.id,
+      guildId: interaction.guildId,
+    });
     return;
   }
 
   try {
     await command.execute(interaction);
   } catch (error) {
-    console.error(`Error executing ${interaction.commandName}`, error);
-
-    const replyPayload = {
-      content: "There was an error while executing this command!",
-      ephemeral: true,
-    };
-
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp(replyPayload);
-    } else {
-      await interaction.reply(replyPayload);
-    }
+    await handleCommandError(interaction, error);
   }
+});
+
+client.on(Events.Error, (error) => {
+  logger.error("Discord client error", {
+    error: error?.message ?? String(error),
+    stack: error?.stack,
+  });
+});
+
+client.on("shardError", (error) => {
+  logger.error("Discord shard error", {
+    error: error?.message ?? String(error),
+    stack: error?.stack,
+  });
 });
 
 client.login(BotToken);
