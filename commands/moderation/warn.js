@@ -2,6 +2,7 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from "discord.js";
+import logger from "../../utils/logger.js";
 
 export default {
   data: new SlashCommandBuilder()
@@ -15,7 +16,7 @@ export default {
     )
     .setDefaultMemberPermissions(PermissionFlagsBits.ModerateMembers)
     .setDMPermission(false),
-    
+
   async execute(interaction) {
     // The specified user who is to be warned
     const target = interaction.options.getUser("user", true);
@@ -36,7 +37,10 @@ export default {
         `You have been warned in ${interaction.guild?.name ?? "this server"} by ${interaction.user.tag}.`,
       );
     } catch (error) {
-      console.error("Failed to DM warned user:", error);
+      logger.warn("Failed to DM warned user", {
+        targetId: target.id,
+        error: error?.message ?? String(error),
+      });
     }
   },
 };
