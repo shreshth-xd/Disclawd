@@ -21,11 +21,21 @@ import {
 registerProcessHandlers();
 
 const app = express();
-const port = 3000;
+const port = process.env.PORT ?? 3000;
 const BotToken = process.env.BOT_TOKEN;
+
+let botReady = false;
 
 // To parse JSON whenever needed
 app.use(express.json());
+
+app.get("/health", (req, res) => {
+  if (botReady) {
+    res.status(200).json({ status: "ok", bot: "ready" });
+  } else {
+    res.status(503).json({ status: "unavailable", bot: "connecting" });
+  }
+});
 
 // Creating a new "client" event emitter class, to manage the intents or perms that my Discord app have
 const client = new Client({
@@ -134,4 +144,13 @@ client.on("shardError", (error) => {
   });
 });
 
+client.once(Events.ClientReady, () => {
+  botReady = true;
+  logger.info("Disclawd is ready.");
+});
+
 client.login(BotToken);
+
+app.listen(port, () => {
+  logger.info(`HTTP server listening on port ${port}; /health available.`);
+});
