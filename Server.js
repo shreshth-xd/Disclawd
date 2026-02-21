@@ -102,12 +102,12 @@ try {
   });
 }
 
-client.on("messageCreate", (message) => {
-  if (message.author.bot) return;
-  message.reply({
-    content: `Hello ${message.author.globalName}`,
-  });
-});
+// client.on("messageCreate", (message) => {
+//   if (message.author.bot) return;
+//   message.reply({
+//     content: `Hello ${message.author.globalName}`,
+//   });
+// });
 
 client.on(Events.InteractionCreate, async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
